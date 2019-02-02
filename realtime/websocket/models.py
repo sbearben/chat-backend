@@ -11,7 +11,7 @@ class UserWebSocketActivity(models.Model):
         on_delete=models.CASCADE,
         to_field='uuid',
         primary_key=True)
-    #group_name = models.CharField(max_length=64, null=True, default=None)
+    # group_name = models.CharField(max_length=64, null=True, default=None)
     active = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):

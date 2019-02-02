@@ -54,6 +54,11 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'allauth',
     'allauth.account',
+
+    # have to add this because there is a bug that causes an error when trying to delete a user if this isn't added
+    # see: https://github.com/Tivix/django-rest-auth/issues/412
+    'allauth.socialaccount',
+
     'rest_auth.registration',
     # For adding/following friends and such
     'friendship',
