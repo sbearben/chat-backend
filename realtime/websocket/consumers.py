@@ -5,9 +5,8 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 from friendships.utils import users_are_friends
-from realtime.messaging import construct_group_name_from_uuid
 
-from .utils import add_user_as_active_websocket, add_user_as_inactive_websocket
+from .utils import add_user_as_active_websocket, add_user_as_inactive_websocket, construct_group_name_from_uuid
 from .exceptions import ChatClientError, NotFriendsError, UserNotLoggedInError
 
 

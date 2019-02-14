@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 from .models import UserRegistrationToken
 
-from common.exceptions import MissingRequiredField
+from common.exceptions import MissingRequiredField, InvalidField
 
 
 # fcm/token
@@ -19,6 +19,8 @@ class RegistrationToken(APIView):
         token = request.data.get('token', None)
         if token is None:
             raise MissingRequiredField(missing_field="token")
+        elif token == "":
+            raise InvalidField(invalid_field="token")
 
         UserRegistrationToken.objects.create_and_set_user_token(request.user, token)
         return Response(status=status.HTTP_201_CREATED)

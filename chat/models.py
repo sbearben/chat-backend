@@ -48,7 +48,10 @@ class Message(models.Model):
         ordering = ['-created']
 
     def save(self, *args, **kwargs):
-        #super().save(*args, **kwargs)  # Call to super().save() is what actually saves the object in the DB
+        # super().save(*args, **kwargs)  # Call to super().save() is what actually saves the object in the DB
+        # TODO: uncomment call to super and delete manually setting message 'created' field
+        import datetime
+        self.created = datetime.datetime.now()
 
         chat_membership = ChatMembership.objects \
             .select_related('other_user') \

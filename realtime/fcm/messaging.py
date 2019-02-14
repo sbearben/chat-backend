@@ -1,5 +1,6 @@
 # realtime/fcm/messaging.py
 from firebase_admin import messaging
+from firebase_admin.messaging import ApiCallError
 
 from . import default_app
 from .models import UserRegistrationToken
@@ -14,8 +15,11 @@ def send_event_via_fcm(user, event):
             data=event.properties_dict,
             token=token,
         )
-        response = messaging.send(message=message, dry_run=False, app=default_app)
-        print("Firebase: send_event_via_fcm - post send: " + response)
+        try:
+            response = messaging.send(message=message, dry_run=False, app=default_app)
+            print("Firebase: send_event_via_fcm - post send: " + response)
+        except (ApiCallError, ValueError) as e:
+            print("Firebase: messaging.send(..) failed: " + str(e))
     else:
         print("No valid FCM token for user.")
 

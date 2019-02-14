@@ -67,6 +67,15 @@ class ReceivedFriendRequests(APIView):
             chat=chat_memberships[0].chat
         )
 
+        # TODO: this realtime event send to user currently accepting the request shouldn't be needed and is a workaround
+        # - see comments inside ReceivedFriendRequestRepository in Android ChatApp
+        # TODO: fix this flaw
+        send_accepted_friend_request(
+            user=received_friend_request.to_user,
+            other_user=received_friend_request.from_user,
+            chat=chat_memberships[0].chat
+        )
+
         serializer = self.serializer_class(received_friend_request)
         return Response(serializer.data, status=status.HTTP_201_CREATED)  # Created since we're creating a Friend
 

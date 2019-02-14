@@ -1,12 +1,8 @@
 # realtime/messaging.py
-from channels.layers import get_channel_layer
-
-from asgiref.sync import async_to_sync
-
 from .events import (AcceptedFriendRequestEvent, CreatedFriendRequestEvent, NewMessageEvent,
                      RejectedFriendRequestEvent, CanceledFriendRequestEvent)
 
-from .websocket.utils import check_if_websocket_is_active, construct_group_name_from_uuid
+from .websocket.utils import check_if_websocket_is_active
 from .websocket.messaging import send_event_via_websocket_group_consumer
 from .fcm.messaging import send_event_via_fcm
 
