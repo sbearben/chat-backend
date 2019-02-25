@@ -159,7 +159,6 @@ STATIC_URL = '/static/'
 AUTH_USER_MODEL = 'user.CustomUser'
 
 
-# mysite/settings.py
 # Channels
 ASGI_APPLICATION = 'mysite.routing.application'
 # Configure the channel layer - the layer allows multiple channels (every consumer

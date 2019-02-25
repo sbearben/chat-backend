@@ -34,8 +34,6 @@ class ChatSerializer(serializers.ModelSerializer):
 
 
 class ChatMembershipSerializer(serializers.HyperlinkedModelSerializer):
-    #chat_uuid = serializers.ReadOnlyField(source='chat.uuid', read_only=True)
-    #chat_url = serializers.ReadOnlyField(source='chat.get_absolute_url', read_only=True)
     chat = serializers.SerializerMethodField()
     other_user = CustomUserSerializer()
 

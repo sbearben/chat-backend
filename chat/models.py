@@ -10,6 +10,61 @@ from realtime.messaging import send_new_message
 AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 
+class ChatManager(models.Manager):
+
+    def delete_chat(self, chat_uuid):
+        Chat.objects.filter(uuid=chat_uuid).delete()
+
+    def delete_chat(self, from_user, to_user):
+        chat = self._get_chat_by_intersection(from_user, to_user)
+        if chat is not None:
+            chat.delete()
+
+    def get_or_create_chat(self, from_user, to_user):
+        if self.chat_exists(from_user, to_user):
+            return self._get_chat_by_membership(from_user, to_user), False
+
+        return self._create_chat(from_user, to_user)[0], True
+
+    def chat_exists(self, from_user, to_user):
+        return ChatMembership.objects.filter(user=from_user, other_user=to_user).exists()
+        # try:
+            # m1 = ChatMembership.objects.get(user=from_user, other_user=to_user)
+            # return True
+        # except ChatMembership.DoesNotExist:
+            # return False
+
+    def _get_chat_by_intersection(self, from_user, to_user):
+        try:
+            qs1 = Chat.objects.filter(users=from_user)
+            qs2 = Chat.objects.filter(users=to_user)
+            return qs1.intersection(qs2).first()
+        except Chat.DoesNotExist:
+            return None
+
+    def _get_chat_by_membership(self, from_user, to_user):
+        try:
+            return ChatMembership.objects.select_related('chat').get(user=from_user, other_user=to_user).chat
+        except Chat.DoesNotExist:
+            return None
+
+    def _create_chat(self, from_user, to_user):
+        new_chat = Chat.objects.create()
+        m1 = ChatMembership.objects.create(user=from_user, other_user=to_user, chat=new_chat)
+        m2 = ChatMembership.objects.create(user=to_user, other_user=from_user, chat=new_chat)
+
+        return new_chat, m1, m2
+
+    def _get_chat_and_chat_memberships(self, from_user, to_user):
+        try:
+            m1 = ChatMembership.objects.select_related('chat').get(user=from_user, other_user=to_user)
+            m2 = ChatMembership.objects.select_related('chat').get(user=from_user, other_user=to_user)
+        except ChatMembership.DoesNotExist:
+            return None
+
+        return m1.chat, m1, m2
+
+
 class Chat(models.Model):
     uuid = models.UUIDField(
         db_index=True,
@@ -22,7 +77,8 @@ class Chat(models.Model):
         through_fields=('chat', 'user'),
     )
     created = models.DateTimeField(auto_now_add=True)
-    #last_modified = models.DateTimeField(blank=True)
+
+    objects = ChatManager()
 
     def get_absolute_url(self):
         return reverse("chat-detail", kwargs={"uuid": self.uuid})
@@ -53,14 +109,17 @@ class Message(models.Model):
         import datetime
         self.created = datetime.datetime.now()
 
+        # select_related + only: https://docs.djangoproject.com/en/2.1/ref/models/querysets/#django.db.models.query.QuerySet.only
+        # defer: https://docs.djangoproject.com/en/2.1/ref/models/querysets/#django.db.models.query.QuerySet.defer
         chat_membership = ChatMembership.objects \
             .select_related('other_user') \
             .only('other_user') \
             .filter(user=self.user, chat=self.chat)\
             .get()
 
+        # TODO: Sending the realtime events is blocking inside Views - need a way to perform asynchronously
         other_user = chat_membership.other_user
-        send_new_message(message=self, other_user=other_user)
+        send_new_message(message=self, other_user=other_user, from_current_user=False)
 
 
 class ChatMembership(models.Model):
@@ -78,7 +137,10 @@ class ChatMembership(models.Model):
     )
 
     class Meta:
-        unique_together = (("chat", "user"), )
+        unique_together = (("chat", "user"), ("user", "other_user"),)
+        indexes = [
+            models.Index(fields=['user', 'other_user']),
+        ]
 
 
 

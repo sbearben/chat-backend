@@ -6,8 +6,7 @@ from .models import Chat, ChatMembership
 
 class ChatAdmin(admin.ModelAdmin):
     model = Chat
-    list_display = ['pk', 'created',]
-    #filter_horizontal = ['users',]
+    list_display = ['pk', 'uuid', 'created',]
 
 
 class ChatMembershipAdmin(admin.ModelAdmin):

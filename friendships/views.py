@@ -11,8 +11,10 @@ from user.utils import get_user_object
 from common.permissions import IsOwnerOrDenied
 from common.exceptions import MissingRequiredQueryParameter
 
-from chat.utils import create_chat_and_memberships
+from chat.models import Chat
+from chat.serializers import ChatMembershipSerializer
 
+# TODO: Sending the realtime events is blocking inside Views - need a way to perform asynchronously
 from realtime.messaging import (send_accepted_friend_request, send_rejected_friend_request,
                                 send_created_friend_request, send_canceled_friend_request)
 
@@ -29,15 +31,15 @@ class ReceivedFriendRequests(APIView):
 
     def get_queryset(self):
         user = self.request.user
-        return FriendshipRequest.objects.select_related('to_user').filter(
+        return FriendshipRequest.objects.select_related('from_user', 'to_user').filter(
             to_user=user, rejected__isnull=True).all()
 
     def get_object(self):
-        queryset = self.get_queryset()
-
         username = self.request.query_params.get('username', None)
         if username is None:
             raise MissingRequiredQueryParameter(missing_query_param="username")
+
+        queryset = self.get_queryset()
 
         obj = get_object_or_404(queryset, from_user__username=username)
         self.check_object_permissions(self.request, obj.to_user)
@@ -48,14 +50,13 @@ class ReceivedFriendRequests(APIView):
         queryset = self.get_queryset()
         serializer = self.serializer_class(queryset, many=True)
         return Response(serializer.data)
-        # return self.get_paginated_list_response(request, *args, **kwargs)
 
     # Accept a friend request from the user passed in to the 'username' query parameter
     def post(self, request, *args, **kwargs):
         received_friend_request = self.get_object()
         received_friend_request.accept()
 
-        chat_memberships = create_chat_and_memberships(
+        chat, _, membership = Chat.objects._create_chat(
             received_friend_request.from_user,
             received_friend_request.to_user
         )
@@ -64,19 +65,10 @@ class ReceivedFriendRequests(APIView):
         send_accepted_friend_request(
             user=received_friend_request.from_user,
             other_user=received_friend_request.to_user,
-            chat=chat_memberships[0].chat
+            chat=chat
         )
 
-        # TODO: this realtime event send to user currently accepting the request shouldn't be needed and is a workaround
-        # - see comments inside ReceivedFriendRequestRepository in Android ChatApp
-        # TODO: fix this flaw
-        send_accepted_friend_request(
-            user=received_friend_request.to_user,
-            other_user=received_friend_request.from_user,
-            chat=chat_memberships[0].chat
-        )
-
-        serializer = self.serializer_class(received_friend_request)
+        serializer = ChatMembershipSerializer(membership)
         return Response(serializer.data, status=status.HTTP_201_CREATED)  # Created since we're creating a Friend
 
     # Reject a friend request from the user passed in to the 'username' query parameter

@@ -6,13 +6,13 @@ from . import default_app
 from .models import UserRegistrationToken
 
 
-def send_event_via_fcm(user, event):
+def send_event_via_fcm(user, realtime_event_dict):
     token = UserRegistrationToken.objects.get_token_if_exists(user)
 
     print("Firebase: send_event_via_fcm - pre send")
     if token is not None and token != "":
         message = messaging.Message(
-            data=event.properties_dict,
+            data=realtime_event_dict,
             token=token,
         )
         try:

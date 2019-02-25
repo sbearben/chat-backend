@@ -44,13 +44,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data=None, bytes_data=None):
-        text_data_json = json.loads(text_data)
+        data_serialized = json.loads(text_data)
 
         # Messages will have a "command" key we can switch on
-        command = text_data_json.get("command", None) # CLIENT ensures that the JSON they send back has this key with a valid value
+        command = data_serialized.get("command", None) # CLIENT ensures that the JSON they send back has this key with a valid value
         try:
             if command == "send_message":
-                await self.send_message(text_data_json)
+                await self.send_message(data_serialized)
         except ChatClientError as e:
             # Catch any errors and send it back to the client
             await self.send(text_data=e.instanceVariablesToJsonString())
@@ -58,8 +58,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     ##### Command helper methods called by receive()
 
-    async def send_message(self, text_data_json):
-        destination_user_uuid = text_data_json['receiver_uuid']
+    async def send_message(self, data_serialized):
+        destination_user_uuid = data_serialized['receiver_uuid']
 
         if not self.user.is_authenticated:
             raise UserNotLoggedInError()
@@ -77,62 +77,50 @@ class ChatConsumer(AsyncWebsocketConsumer):
             destination_group_name,
             {
                 'type': 'chat_message', # so that 'chat_message' method below will be invoked on receiving consumers
-                'uuid': text_data_json['uuid'],
-                'chat_uuid': text_data_json['chat_uuid'],
-                'sender_uuid': text_data_json['sender_uuid'],
-                'sender_username': text_data_json['sender_username'],
-                'date': text_data_json['date'],
-                'message': text_data_json['message']
+                'uuid': data_serialized['uuid'],
+                'chat_uuid': data_serialized['chat_uuid'],
+                'sender_uuid': data_serialized['sender_uuid'],
+                'sender_username': data_serialized['sender_username'],
+                'date': data_serialized['date'],
+                'message': data_serialized['message']
             }
         )
 
-    # The following is called by the CONSUMER to send the message to the CLIENT
-    async def send_consumer_event_to_client(self, event):
-        await self.send(text_data=json.dumps(event))
-
     # Receive chat_message from room group and send down to client(s)
-    async def chat_message(self, event):
-        await self.send_consumer_event_to_client(
-            event=event
+    async def chat_message(self, message):
+        await self._send_consumer_event_to_client(
+            event=message
         )
-        '''
-        # Send message to WebSocket
-        await self.send(text_data=json.dumps({
-            'type': 'text_message',
-            'uuid': event['uuid'],
-            'chat_uuid': event['chat_uuid'],
-            'sender_uuid': event['sender_uuid'],
-            'sender_username': event['sender_username'],
-            'date': event['date'],
-            'message': event['message']
-        }))
-        '''
 
     # Receive accepted_friend_request from room group and send down to client(s)
-    async def accepted_friend_request(self, event):
+    async def accepted_friend_request(self, message):
         print("Consumer: accepted_friend_request")
-        await self.send_consumer_event_to_client(
-            event=event
+        await self._send_consumer_event_to_client(
+            event=message
         )
 
     # Receive created_friend_request from room group and send down to client(s)
-    async def created_friend_request(self, event):
+    async def created_friend_request(self, message):
         print("Consumer: created_friend_request")
-        print(event)
-        await self.send_consumer_event_to_client(
-            event=event
+        print(message)
+        await self._send_consumer_event_to_client(
+            event=message
         )
 
     # Receive rejected_friend_request from room group and send down to client(s)
-    async def rejected_friend_request(self, event):
+    async def rejected_friend_request(self, message):
         print("Consumer: rejected_friend_request")
-        await self.send_consumer_event_to_client(
-            event=event
+        await self._send_consumer_event_to_client(
+            event=message
         )
 
     # Receive canceled_friend_request from room group and send down to client(s)
-    async def canceled_friend_request(self, event):
+    async def canceled_friend_request(self, message):
         print("Consumer: canceled_friend_request")
-        await self.send_consumer_event_to_client(
-            event=event
+        await self._send_consumer_event_to_client(
+            event=message
         )
+
+    # The following is called by the CONSUMER to send the message to the CLIENT
+    async def _send_consumer_event_to_client(self, event):
+        await self.send(text_data=json.dumps(event))

@@ -10,5 +10,4 @@ def create_chat_and_memberships(from_user, to_user):
     m2 = ChatMembership(user=to_user, other_user=from_user, chat=new_chat)
     m2.save()
 
-    return m1, m2
-
+    return new_chat, m1, m2
