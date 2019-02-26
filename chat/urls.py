@@ -16,10 +16,4 @@ urlpatterns = [
         view=chat_views.ChatDetails.as_view(),
         name='chat-detail'
     ),
-
-    url(
-        regex=r'^friends/(?P<user_uuid>[-\w]+)/messages/$',
-        view=chat_views.MessagesList.as_view(),
-        name='chat-detail'
-    ),
 ]

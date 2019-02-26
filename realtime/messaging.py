@@ -9,26 +9,6 @@ from .events import (AcceptedFriendRequestEvent, CreatedFriendRequestEvent, NewM
 channel_layer = get_channel_layer()
 
 
-def _send_realtime_event_to_user(user, realtime_event):
-    async_to_sync(channel_layer.send)(
-        "realtime-event-sender",
-        {
-            'type': 'send_event',
-            'user_uuid_str': str(user.uuid),
-            'realtime_event_dict': realtime_event.properties_dict,
-        }
-    )
-
-    '''
-    if check_if_websocket_is_active(user):
-        print("Realtime: send_realtime_event_to_user - websocket branch")
-        send_event_via_websocket_group_consumer(user, realtime_event)
-    else:
-        print("Realtime: send_realtime_event_to_user - firebase branch")
-        send_event_via_fcm(user, realtime_event)
-    '''
-
-
 def send_accepted_friend_request(user, other_user, chat):
     _send_realtime_event_to_user(
         user=user,
@@ -87,4 +67,15 @@ def send_new_message(message, other_user, from_current_user):
             message=message.text,
             from_current_user=from_current_user,
         )
+    )
+
+
+def _send_realtime_event_to_user(user, realtime_event):
+    async_to_sync(channel_layer.send)(
+        "realtime-event-sender",
+        {
+            'type': 'send_event',
+            'user_uuid_str': str(user.uuid),
+            'realtime_event_dict': realtime_event.properties_dict,
+        }
     )

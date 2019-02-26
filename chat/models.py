@@ -109,18 +109,6 @@ class Message(models.Model):
         import datetime
         self.created = datetime.datetime.now()
 
-        # select_related + only: https://docs.djangoproject.com/en/2.1/ref/models/querysets/#django.db.models.query.QuerySet.only
-        # defer: https://docs.djangoproject.com/en/2.1/ref/models/querysets/#django.db.models.query.QuerySet.defer
-        chat_membership = ChatMembership.objects \
-            .select_related('other_user') \
-            .only('other_user') \
-            .filter(user=self.user, chat=self.chat)\
-            .get()
-
-        # TODO: Sending the realtime events is blocking inside Views - need a way to perform asynchronously
-        other_user = chat_membership.other_user
-        send_new_message(message=self, other_user=other_user, from_current_user=False)
-
 
 class ChatMembership(models.Model):
     uuid = models.UUIDField(

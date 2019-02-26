@@ -10,7 +10,6 @@ from .utils import add_user_as_active_websocket, add_user_as_inactive_websocket,
 from .exceptions import ChatClientError, NotFriendsError, UserNotLoggedInError
 
 
-# 'await' is used to call asynchronous functions that perform I/O
 # - NOTE: ALL channel_layer methods are asynchronous
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -20,22 +19,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if self.user.is_anonymous:
             await self.close()
 
-        # We're taking the approach of each user gets a group- so here we construct the group name out of user's uuid
         self.user_group_name = construct_group_name_from_uuid(self.user.uuid)
 
-        # Join room group
         await self.channel_layer.group_add(
             self.user_group_name,
             self.channel_name  # I believe 'channel_name' is a unique name given per Consumer instance
         )
-        print("adding as active")
+
         await add_user_as_active_websocket(self.user)
 
-        # If we do not call this method within connect() then the connection will be rejected and closed.
         await self.accept()
 
     async def disconnect(self, close_code):
-        print("Consumer: disconnect")
         await self.channel_layer.group_discard(
             self.user_group_name,
             self.channel_name
@@ -67,16 +62,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not await database_sync_to_async(users_are_friends)(self.user, uuid.UUID(destination_user_uuid)):
             raise NotFriendsError(destination_user_uuid)
 
-        # destination_user_channel_name = await self.get_user_channel_name_from_map(destination_user_uuid)
         destination_group_name = construct_group_name_from_uuid( destination_user_uuid)
 
         # Send message to room group - an event has a special 'type' key corresponding to the name of the method that
         # should be invoked on consumers that receive the event.
-        #if await check_if_group_is_active(self.channel_layer, destination_group_name):
         await self.channel_layer.group_send(
             destination_group_name,
             {
-                'type': 'chat_message', # so that 'chat_message' method below will be invoked on receiving consumers
+                'type': 'chat_message',  # so that 'chat_message' method below will be invoked on receiving consumers
                 'uuid': data_serialized['uuid'],
                 'chat_uuid': data_serialized['chat_uuid'],
                 'sender_uuid': data_serialized['sender_uuid'],
